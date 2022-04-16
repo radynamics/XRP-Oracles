@@ -73,7 +73,7 @@ class Oracle extends EventEmitter {
       async start() {
         this.oracleFeed()
         this.startEventLoop()
-        this.listenEventLoop()
+        this.listenEventLoop(process.env.PUBLISH_INTERVAL || 30000)
         await client
 
         client.on('ledger', async (event) =>  {
@@ -132,7 +132,7 @@ class Oracle extends EventEmitter {
         }               
         let response = await client.send(request)
       },
-      listenEventLoop(interval = 30000) {
+      listenEventLoop(interval) {
         const  self = this
         setInterval(function() {
           self.emit('oracle-fetch')
