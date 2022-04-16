@@ -81,7 +81,7 @@ module.exports = class CurrencyPublisher {
         data.maxRetry++
         if (data.maxRetry <= 3) {
           oracle.retryPublish(data)
-          logger.warn('RESUBMIT: ' + data.symbol)
+          logger.info('RESUBMIT: ' + data.symbol)
         }
       },
       currencyUTF8ToHex(code){
