@@ -7,7 +7,7 @@ const logger = require('../logger.js');
 module.exports = class CurrencyPublisher {
   constructor() {
     Object.assign(this, {
-      async publish(Connection, data, sequence, oracle) {
+      async publish(Connection, data, sequence, fee, count, stats, oracle) {
         let retry = null
 
         if (!('rawResultsNamed' in data)) { return }
@@ -39,7 +39,7 @@ module.exports = class CurrencyPublisher {
         const Tx = {
           TransactionType: 'TrustSet',
           Account: process.env.XRPL_SOURCE_ACCOUNT,
-          Fee: process.env.XRPL_FEE == null ? '10' : process.env.XRPL_FEE,
+          Fee: (fee + count).toString(),
           Flags: 131072,
           Sequence: sequence,
           LimitAmount: {
@@ -57,13 +57,15 @@ module.exports = class CurrencyPublisher {
           const {signedTransaction} = lib.sign(Tx, keypair)
           const Signed = await Connection.send({ command: 'submit', 'tx_blob': signedTransaction })
 
-          // logger.debug({Signed})
+          // log({Signed})
           if (Signed.engine_result != 'tesSUCCESS') {
-            retry = this.resubmitTx(data, oracle)  
+            stats.last_error = Signed.engine_result
+            retry = this.resubmitTx(data, oracle)
           }
           else {
             logger.debug('Signed ' + data.symbol)
-            data.transactionHash = Signed.tx_json.hash
+            stats.last_published = new Date()
+            stats.submissions_since_start ++
           }
         } catch (e) {
           logger.error(`Error signing / submitting: ${e.message}`)

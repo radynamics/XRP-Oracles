@@ -1,7 +1,6 @@
 'use strict'
 
 const { XrplClient } = require('xrpl-client')
-const { XummSdk } = require('xumm-sdk')
 const app = require('express')()
 const express = require('express')
 const path = require( 'path')
@@ -15,9 +14,8 @@ const currency = require('./publishers/currency.js')
 const dotenv = require('dotenv')
 const axios = require('axios')
 const EventEmitter = require('events')
-const PubSubManager = require('./utilities/pubsub-v2.js')
-const SocketServer = require('./utilities/socket-server.js')
-// const rootCas = require('ssl-root-cas').create()
+
+const rootCas = require('ssl-root-cas').create()
 
 // rootCas.addFile(path.resolve(__dirname, process.env.CERT))
 // rootCas.addFile(path.resolve(__dirname, process.env.KEY))
@@ -55,16 +53,16 @@ class Oracle extends EventEmitter {
     const feedUrl = baseUrl + '/api/feed/data'
     const client = new XrplClient(process.env.ENDPOINT)
     logger.info(`using XummSdk, env.XUMM_APIKEY defined: ${process.env.XUMM_APIKEY != null}`)
-    const Sdk = process.env.XUMM_APIKEY == null ? null : new XummSdk(process.env.XUMM_APIKEY, process.env.XUMM_APISECRET)
-    const password = process.env.PASSWORD
     const providerConfig = process.env.PROVIDER_CONFIG == null ? 'sources.json' : process.env.PROVIDER_CONFIG
-    const pubsub = new PubSubManager()
-    const httpsSocket = new SocketServer()
-    const httpSocket = new SocketServer()
     let oracleData = []
     let runningSince = new Date()
-    let lastPublishedToXrpl = null
-    let sourceBalanceDrops = null
+    const stats = {
+      started: new Date(),
+      last_published: null,
+      submissions_since_start: 0,
+      source_balance: 0,
+      last_error: {}
+    }
 
     Object.assign(this, {
       async run(oracle) {
@@ -73,11 +71,6 @@ class Oracle extends EventEmitter {
         })
       },
       async start() {
-        pubsub.start()
-        if(httpsServer != null) {
-          httpsSocket.start(httpsServer, pubsub)
-        }
-        httpSocket.start(httpServer, pubsub)
         this.oracleFeed()
         this.startEventLoop()
         this.listenEventLoop()
@@ -86,9 +79,8 @@ class Oracle extends EventEmitter {
         client.on('ledger', async (event) =>  {
           if (event.type == 'ledgerClosed') {
             const { account_data } = await client.send({ command: 'account_info', account: process.env.XRPL_SOURCE_ACCOUNT })
-            //logger.debug(account_data)
+            stats.source_balance = account_data.Balance
             if (account_data != null && 'Sequence' in account_data) {
-              sourceBalanceDrops = account_data.Balance
               this.processFifo(account_data.Sequence)  
             }
           }
@@ -130,9 +122,6 @@ class Oracle extends EventEmitter {
           results.meta.push(result)
         }
         logger.debug(results)
-        if (pubsub != null) {
-          pubsub.route(results, 'oracles')
-        }
       },
       async oracleFeed() {
         // addresses are oracle-sam and xumm oracle
@@ -159,11 +148,9 @@ class Oracle extends EventEmitter {
               // logger.verbose(oracle)
               self.processData(oracle)
             }
-          } catch(e) {
-            if(e.code == 'ETIMEDOUT') {
+          } catch (error) {
+            if(error.code == 'ETIMEDOUT') {
               logger.warn(`Timeout calling ${feedUrl}`)
-            } else {
-              throw e;
             }
           }
         })
@@ -183,10 +170,19 @@ class Oracle extends EventEmitter {
       },
       async createEndPoint(app, testing = false) {
         const self = this
+        app.get('/api/status', async function(req, res) {
+          // allow cors through for local testing.
+          if (testing) {
+            res.header("Access-Control-Allow-Origin", "*")
+          }
+
+          res.json(stats)
+      })
+
         app.get('/api/feed/data', async function(req, res) {
             // allow cors through for local testing.
             if (testing) {
-              res.header("Access-Control-Allow-Origin", "*")    
+              res.header("Access-Control-Allow-Origin", "*")
             }
 
             const data = await self.fetchData()
@@ -196,7 +192,7 @@ class Oracle extends EventEmitter {
         app.get('/api/aggregator', async function(req, res) {
             // allow cors through for local testing.
             if (testing) {
-              res.header("Access-Control-Allow-Origin", "*")    
+              res.header("Access-Control-Allow-Origin", "*")
             }
 
             if (!('oracle' in req.query)) { return res.json({ 'error' : 'missing parameter oracle'}) }
@@ -207,67 +203,45 @@ class Oracle extends EventEmitter {
             fifo.push(data)
             res.json(data)
         })
-
-        app.get('/api/v2/xumm-sign-in', async function(req, res) {
-          // allow cors through for local testing.
-          if (testing) {
-              // logger.debug('allow cors through for local testing')
-              res.header("Access-Control-Allow-Origin", "*")    
-          }
-
-          const data = await self.userSignIn()
-          res.json(data)
-      })
-
-        app.get('/api/heartbeat', async function(req, res) {
-          // allow cors through for local testing.
-          if (testing) {
-            res.header("Access-Control-Allow-Origin", "*")    
-          }
-          let data = { running: true }
-          if (password != null && req.query.pwr === password) {
-            data = { running: true, runningSince: runningSince, sourceBalanceDrops: sourceBalanceDrops, lastPublishedToXrpl, lastPublishedToXrpl }
-          }
-          res.json(data)
-        })
       },
-      sendSocket(data) {
-        const oracle = data.symbol
-        if (oracle in oracleData) {
-          data.previous = oracleData[oracle].previous
+      async LedgerFeeCalculation(debug = false) {
+        const stats = await client.send({
+            "id": 2,
+            "command": "server_state"
+        })
+        const basefee = 10
+        const load_factor = stats.state.load_factor * 1
+        const load_base = stats.state.load_base * 1
+        const current_fee = Math.round((basefee * load_factor) / load_base)
+    
+        if (debug) {
+          logger.debug('stats', stats)
+          logger.debug('fee-basefee', basefee)
+          logger.debug('fee-load_factor', load_factor)
+          logger.debug('fee-load_base', load_base)
+          logger.debug('fee-calculation', current_fee)
         }
-
-        logger.debug('pubsub: ' + data.symbol + ':' + data.type)
-        pubsub.route(data, 'currency')
-
-        if (!(oracle in oracleData)) {
-          oracleData[oracle] = {
-            previous : 0
-          }
-        }
-        oracleData[oracle].previous = data.filteredMedian
+    
+        // we can get a bit more fancy here and add some levels... for when if batch fails multiple times.
+        // https://gist.github.com/WietseWind/3e9f9339f37a5881978a9661f49b0e52
+    
+        return current_fee
       },
       async processFifo(sequence) {
-
         logger.debug('PUBLISH DATA fifo length: ' + fifo.length)
-
+        const fee = await this.LedgerFeeCalculation(false)
+        let count = 0
         while(fifo.length > 0) {
           const publisher = new currency()
           const data = fifo.pop()
 
           if (process.env.PUBLISH_TO_XRPL === 'true') {
-            publisher.publish(client, data, sequence, this)  
-            .then(function() {
-              if(data.transactionHash != null) {
-                lastPublishedToXrpl = new Date()
-              }
-            })
+            // typically one would wait for the XRPL response.
+            // however we dont wait here as we are batching transactions into a single ledger.
+            // also we are not overly concernd with failures, we do retry failed transactions but dont overly push them.
+            publisher.publish(client, data, sequence, fee, count, stats, this)
           }
 
-          // socket shorld not get retry data
-          if (!('maxRetry' in data)) {
-            this.sendSocket(data)  
-          }
           sequence++
         }
         while(retry.length > 0) {
@@ -276,69 +250,7 @@ class Oracle extends EventEmitter {
       },
       retryPublish(data) {
         retry.push(data)
-      },
-      async userSignIn() {
-				if(Sdk == null) {
-					this.subscriptionListener(false)
-					return false
-				}
-				const SignInPayload = {
-					txjson: {
-						TransactionType : 'SignIn'
-					}
-				}
-				//logger.debug(SignInPayload)
-
-				const payload = await Sdk.payload.createAndSubscribe(SignInPayload, event => {
-					if (event.data.signed === true) {
-						return event.data
-					}
-
-					if (event.data.signed === false) {
-						return false
-					}
-				})
-        logger.debug(payload)
-				this.subscriptionListener(payload)
-				
-
-				return payload
-			},
-
-			async subscriptionListener(subscription) {
-				if(Sdk == null) { return }
-				const self = this
-				const resolveData = await subscription.resolved
-
-				if (resolveData.signed === false) { return }
-
-				if (resolveData.signed === true) {
-					logger.debug('Woohoo! The sign request was signed :)')
-
-					/**
-					 * Let's fetch the full payload end result, and get the issued
-					 * user token, we can use to send our next payload per Push notification
-					 */
-					const result = await Sdk.payload.get(resolveData.payload_uuidv4)
-					
-          logger.debug(result)
-					// guard clause to make sure we only looking at sign in here
-					if (result.payload.tx_type != 'SignIn') { return }
-          logger.debug('User token:', result.application.issued_user_token)
-					
-					
-
-					if (pubsub != null) {
-						const info = {
-							'uuid': result.meta.uuid,
-							'tx_type': result.payload.tx_type,
-							'created_at': result.payload.created_at,
-							'account': result.response.account
-						}
-            pubsub.route(info, 'users')
-          }
-				}
-			},
+      }
     })
   }
 }
@@ -346,9 +258,3 @@ class Oracle extends EventEmitter {
 const oracle = new Oracle()
 oracle.createEndPoint(app, process.env.ALLOW_CORS)
 oracle.start()
-
-
-// //server.on('request', app)
-// httpServer.listen(process.env.PORT, () => {
-//    logger.debug('Server listening: ' + process.env.PORT)
-// })
