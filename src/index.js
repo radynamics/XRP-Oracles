@@ -54,8 +54,6 @@ class Oracle extends EventEmitter {
     const client = new XrplClient(process.env.ENDPOINT)
     logger.info(`using XummSdk, env.XUMM_APIKEY defined: ${process.env.XUMM_APIKEY != null}`)
     const providerConfig = process.env.PROVIDER_CONFIG == null ? 'sources.json' : process.env.PROVIDER_CONFIG
-    let oracleData = []
-    let runningSince = new Date()
     const stats = {
       started: new Date(),
       last_published: null,
