@@ -14,51 +14,9 @@
 				"invert": false
 			},
 			{
-				"name": "binance:usdt",
-				"url": "https://api.binance.com/api/v3/ticker/price?symbol=XRPUSDT",
-				"selector": "data.price",
-				"invert": false
-			},
-			{
-				"name": "binance:busd",
-				"url": "https://api.binance.com/api/v3/ticker/price?symbol=XRPBUSD",
-				"selector": "data.price",
-				"invert": false
-			},
-			{
-				"name": "bybit:usdt",
-				"url": "https://api.bybit.com/spot/quote/v1/ticker/price?symbol=XRPUSDT",
-				"selector": "data.result.price",
-				"invert": false
-			},
-			{
 				"name": "kraken:usd",
 				"url": "https://api.kraken.com/0/public/Ticker?pair=XRPUSD",
 				"selector": "data.result.XXRPZUSD.c[0]",
-				"invert": false
-			},
-			{
-				"name": "huobi:usdt",
-				"url": "https://api.huobi.pro/market/detail/merged?symbol=xrpusdt",
-				"selector": "data.tick.close",
-				"invert": false
-			},
-			{
-				"name": "bithumb:usdt",
-				"url": "https://global-openapi.bithumb.pro/openapi/v1/spot/ticker?symbol=XRP-USDT",
-				"selector": "data.data[0].c",
-				"invert": false
-			},
-			{
-				"name": "upbit:usdt",
-				"url": "https://api.upbit.com/v1/ticker?markets=USDT-XRP",
-				"selector": "data[0].trade_price",
-				"invert": false
-			},
-			{
-				"name": "hitbtc:usdt",
-				"url": "https://api.hitbtc.com/api/2/public/ticker/XRPUSDT",
-				"selector": "data.last",
 				"invert": false
 			},
 			{
