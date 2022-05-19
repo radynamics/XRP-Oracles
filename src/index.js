@@ -60,7 +60,8 @@ class Oracle extends EventEmitter {
       last_fee: null,
       submissions_since_start: 0,
       source_balance: 0,
-      last_error: {}
+      last_error: {},
+      last_error_occured: null
     }
 
     Object.assign(this, {
