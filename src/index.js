@@ -57,6 +57,7 @@ class Oracle extends EventEmitter {
     const stats = {
       started: new Date(),
       last_published: null,
+      last_fee: null,
       submissions_since_start: 0,
       source_balance: 0,
       last_error: {}

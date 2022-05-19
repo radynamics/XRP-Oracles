@@ -36,10 +36,11 @@ module.exports = class CurrencyPublisher {
         if (code.length > 3) {
           code = this.currencyUTF8ToHex(code)
         }
+        const trxFee = fee + count;
         const Tx = {
           TransactionType: 'TrustSet',
           Account: process.env.XRPL_SOURCE_ACCOUNT,
-          Fee: (fee + count).toString(),
+          Fee: trxFee.toString(),
           Flags: 131072,
           Sequence: sequence,
           LimitAmount: {
@@ -65,6 +66,7 @@ module.exports = class CurrencyPublisher {
           else {
             logger.debug('Signed ' + data.symbol)
             stats.last_published = new Date()
+            stats.last_fee = trxFee;
             stats.submissions_since_start ++
           }
         } catch (e) {
