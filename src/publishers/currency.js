@@ -60,6 +60,7 @@ module.exports = class CurrencyPublisher {
 
           // log({Signed})
           if (Signed.engine_result != 'tesSUCCESS') {
+            data.last_error = Signed.engine_result
             stats.last_error = Signed.engine_result
             stats.last_error_occured = new Date()
             retry = this.resubmitTx(data, oracle)

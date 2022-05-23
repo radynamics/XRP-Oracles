@@ -239,7 +239,7 @@ class Oracle extends EventEmitter {
             // typically one would wait for the XRPL response.
             // however we dont wait here as we are batching transactions into a single ledger.
             // also we are not overly concernd with failures, we do retry failed transactions but dont overly push them.
-            publisher.publish(client, data, sequence, fee, count, stats, this)
+            publisher.publish(client, data, sequence, this.getTransactionFee(data, fee), count, stats, this)
           }
 
           sequence++
@@ -250,6 +250,26 @@ class Oracle extends EventEmitter {
       },
       retryPublish(data) {
         retry.push(data)
+      },
+      getTransactionFee(data, serverSuggestedFee) {
+        var fee = serverSuggestedFee
+        if(data.last_error == 'telCAN_NOT_QUEUE_FEE') {
+          // "... must have a Fee value that is at least 25% more" (https://xrpl.org/tel-codes.html)
+          fee = Math.ceil(serverSuggestedFee * 1.25)
+        }
+        if(data.last_error == 'telCAN_NOT_QUEUE_FULL') {
+          // "... new transaction must have a higher transaction cost" (https://xrpl.org/tel-codes.html)
+          fee = serverSuggestedFee + 1
+        }
+        return this.getOrMaxFee(fee)
+      },
+      getOrMaxFee(fee) {
+        const max = process.env.MAX_FEE_DROPS == null ? 1010 : parseInt(process.env.MAX_FEE_DROPS)
+        if(fee < max) {
+          return fee
+        }
+        logger.warn(`Returning MAX_FEE_DROPS ${max} instead of ${fee}.`)
+        return max
       }
     })
   }
