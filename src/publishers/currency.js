@@ -3,6 +3,7 @@
 const lib = require('xrpl-accountlib')
 const dotenv = require('dotenv')
 const logger = require('../logger.js');
+const MAX_SUBMIT_RETRIES = 3;
 
 module.exports = class CurrencyPublisher {
   constructor() {
@@ -60,9 +61,13 @@ module.exports = class CurrencyPublisher {
 
           // log({Signed})
           if (Signed.engine_result != 'tesSUCCESS') {
-            data.last_error = Signed.engine_result
-            stats.last_error = Signed.engine_result
-            stats.last_error_occured = new Date()
+            // Consider retry as error after reaching max submit retries
+            var retryResult = [ 'terPRE_SEQ', 'tefPAST_SEQ']
+            if (!retryResult.includes(Signed.engine_result) || data.maxRetry == MAX_SUBMIT_RETRIES) {
+              data.last_error = Signed.engine_result
+              stats.last_error = Signed.engine_result
+              stats.last_error_occured = new Date()
+            }
             retry = this.resubmitTx(data, oracle)
           }
           else {
@@ -83,7 +88,7 @@ module.exports = class CurrencyPublisher {
           data.maxRetry = 0
         }
         data.maxRetry++
-        if (data.maxRetry <= 3) {
+        if (data.maxRetry <= MAX_SUBMIT_RETRIES) {
           oracle.retryPublish(data)
           logger.info('RESUBMIT: ' + data.symbol)
         }
