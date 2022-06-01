@@ -230,16 +230,22 @@ class Oracle extends EventEmitter {
       async processFifo(sequence) {
         logger.debug('PUBLISH DATA fifo length: ' + fifo.length)
         const fee = await this.LedgerFeeCalculation(false)
+        const maxFee = process.env.MAX_FEE_DROPS == null ? 1010 : parseInt(process.env.MAX_FEE_DROPS)
         let count = 0
         while(fifo.length > 0) {
           const publisher = new currency()
           const data = fifo.pop()
 
           if (process.env.PUBLISH_TO_XRPL === 'true') {
+            const trxFee = this.getTransactionFee(data, fee)
+            if(trxFee > maxFee) {
+              logger.warn(`Could not submit tx due fee ${trxFee} exeeds MAX_FEE_DROPS ${maxFee}.`)
+              continue
+            }
             // typically one would wait for the XRPL response.
             // however we dont wait here as we are batching transactions into a single ledger.
             // also we are not overly concernd with failures, we do retry failed transactions but dont overly push them.
-            publisher.publish(client, data, sequence, this.getTransactionFee(data, fee), count, stats, this)
+            publisher.publish(client, data, sequence, trxFee, count, stats, this)
           }
 
           sequence++
@@ -261,15 +267,7 @@ class Oracle extends EventEmitter {
           // "... new transaction must have a higher transaction cost" (https://xrpl.org/tel-codes.html)
           fee = serverSuggestedFee + 1
         }
-        return this.getOrMaxFee(fee)
-      },
-      getOrMaxFee(fee) {
-        const max = process.env.MAX_FEE_DROPS == null ? 1010 : parseInt(process.env.MAX_FEE_DROPS)
-        if(fee < max) {
-          return fee
-        }
-        logger.warn(`Returning MAX_FEE_DROPS ${max} instead of ${fee}.`)
-        return max
+        return fee
       }
     })
   }
