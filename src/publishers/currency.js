@@ -60,7 +60,9 @@ module.exports = class CurrencyPublisher {
           const Signed = await Connection.send({ command: 'submit', 'tx_blob': signedTransaction })
 
           // log({Signed})
-          if (Signed.engine_result != 'tesSUCCESS') {
+          // terQUEUED: "... did not meet the open ledger requirement, so the transaction has been queued for a future ledger."
+          var successResult = [ 'tesSUCCESS', 'terQUEUED'] 
+          if (!successResult.includes(Signed.engine_result)) {
             // Consider retry as error after reaching max submit retries
             var retryResult = [ 'terPRE_SEQ', 'tefPAST_SEQ']
             if (!retryResult.includes(Signed.engine_result) || data.maxRetry == MAX_SUBMIT_RETRIES) {
