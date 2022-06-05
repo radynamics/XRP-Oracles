@@ -5,6 +5,10 @@ Persists the data fetched with [XRP-Price-Aggregator](https://github.com/lathanb
 
 This project takes from [XRPL-Persist-Price-Oracle](https://github.com/XRPL-Labs/XRPL-Persist-Price-Oracle) and extends it to allow price data of anything with a feed to be pushed.
 
+## Wallet
+[rpXCfDds782Bd6eK9Hsn15RDnGMtxf752m](https://bithomp.com/explorer/rpXCfDds782Bd6eK9Hsn15RDnGMtxf752m)
+
+## Config
 Most of the configuration of the oracle is defined in the sources.json.
 
 ```javascript
