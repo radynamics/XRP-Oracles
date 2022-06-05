@@ -63,10 +63,10 @@ module.exports = class CurrencyPublisher {
           // terQUEUED: "... did not meet the open ledger requirement, so the transaction has been queued for a future ledger."
           var successResult = [ 'tesSUCCESS', 'terQUEUED'] 
           if (!successResult.includes(Signed.engine_result)) {
+            data.last_error = Signed.engine_result
             // Consider retry as error after reaching max submit retries
-            var retryResult = [ 'terPRE_SEQ', 'tefPAST_SEQ']
+            var retryResult = [ 'terPRE_SEQ', 'tefPAST_SEQ', 'telCAN_NOT_QUEUE_FEE', 'telCAN_NOT_QUEUE_FULL']
             if (!retryResult.includes(Signed.engine_result) || data.maxRetry == MAX_SUBMIT_RETRIES) {
-              data.last_error = Signed.engine_result
               stats.last_error = Signed.engine_result
               stats.last_error_occured = new Date()
             }
