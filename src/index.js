@@ -158,7 +158,7 @@ class Oracle extends EventEmitter {
       async processData(oracle) {
         if (oracle == null) { return {} }
 
-        let { data } = await axios.get(baseUrl + '/api/aggregator?oracle=' + oracle)
+        this.aggregate(oracle)
       },
       async fetchData() {
         return new Promise((resolve, reject) => {
@@ -197,12 +197,16 @@ class Oracle extends EventEmitter {
 
             if (!('oracle' in req.query)) { return res.json({ 'error' : 'missing parameter oracle'}) }
 
-            const data = await self.run(req.query.oracle)
-            logger.verbose('dataSubmission: ' + req.query.oracle)
-            
-            fifo.push(data)
+            const data = await self.aggregate(req.query.oracle)
             res.json(data)
         })
+      },
+      async aggregate(oracle) {
+        const data = await this.run(oracle)
+        logger.verbose('dataSubmission: ' + oracle)
+        
+        fifo.push(data)
+        return data
       },
       async LedgerFeeCalculation(debug = false) {
         const stats = await client.send({
