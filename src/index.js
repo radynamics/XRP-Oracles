@@ -188,25 +188,12 @@ class Oracle extends EventEmitter {
             const data = await self.fetchData()
             res.json(data)
         })
-
-        app.get('/api/aggregator', async function(req, res) {
-            // allow cors through for local testing.
-            if (testing) {
-              res.header("Access-Control-Allow-Origin", "*")
-            }
-
-            if (!('oracle' in req.query)) { return res.json({ 'error' : 'missing parameter oracle'}) }
-
-            const data = await self.aggregate(req.query.oracle)
-            res.json(data)
-        })
       },
       async aggregate(oracle) {
         const data = await this.run(oracle)
         logger.verbose('dataSubmission: ' + oracle)
         
         fifo.push(data)
-        return data
       },
       async LedgerFeeCalculation(debug = false) {
         const stats = await client.send({
