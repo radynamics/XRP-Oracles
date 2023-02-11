@@ -440,9 +440,9 @@
 				"invert": false
 			},
 			{
-				"name": "bitpanda:chf",
-				"url": "https://api.exchange.bitpanda.com/public/v1/market-ticker/XRP_CHF",
-				"selector": "data.last_price",
+				"name": "coingecko:chf",
+				"url": "https://api.coingecko.com/api/v3/simple/price?ids=ripple&vs_currencies=CHF&precision=10",
+				"selector": "data.ripple.chf",
 				"invert": false
 			}
 		]
