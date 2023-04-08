@@ -3,7 +3,9 @@
 const lib = require('xrpl-accountlib')
 const dotenv = require('dotenv')
 const logger = require('../logger.js');
-const MAX_SUBMIT_RETRIES = 3;
+
+dotenv.config()
+const MAX_SUBMIT_RETRIES = process.env.MAX_SUBMIT_RETRIES == null ? 1 : parseInt(process.env.MAX_SUBMIT_RETRIES);
 
 module.exports = class CurrencyPublisher {
   constructor() {
@@ -12,7 +14,6 @@ module.exports = class CurrencyPublisher {
         let retry = null
 
         if (!('rawResultsNamed' in data)) { return }
-        dotenv.config()
 
         logger.debug('GOT DATA')
         logger.debug({data})
