@@ -79,7 +79,7 @@ module.exports = class CurrencyPublisher {
             stats.submissions_since_start ++
           }
         } catch (e) {
-          logger.error(`Error signing / submitting: ${e.message}`)
+          logger.error(`Error signing / submitting: ${e.message}`, e);
           retry = this.resubmitTx(data, oracle)
         }
         logger.debug('WRAP UP')
