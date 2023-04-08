@@ -219,6 +219,9 @@ class Oracle extends EventEmitter {
         return current_fee
       },
       async processFifo(sequence) {
+        if(fifo.length == 0) {
+          return
+        }
         logger.debug('PUBLISH DATA fifo length: ' + fifo.length)
         const fee = await this.LedgerFeeCalculation(false)
         const maxFee = process.env.MAX_FEE_DROPS == null ? 1010 : parseInt(process.env.MAX_FEE_DROPS)
