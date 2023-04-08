@@ -79,8 +79,8 @@ class Oracle extends EventEmitter {
         client.on('ledger', async (event) =>  {
           if (event.type == 'ledgerClosed') {
             const { account_data } = await client.send({ command: 'account_info', account: process.env.XRPL_SOURCE_ACCOUNT })
-            stats.source_balance = account_data.Balance
             if (account_data != null && 'Sequence' in account_data) {
+              stats.source_balance = account_data.Balance
               this.processFifo(account_data.Sequence)  
             }
           }
