@@ -201,8 +201,8 @@ class Oracle extends EventEmitter {
             "command": "server_state"
         })
         const basefee = 10
-        const load_factor = stats.state.load_factor * 1
-        const load_base = stats.state.load_base * 1
+        const load_factor = stats.state.load_factor === undefined ? 1 : stats.state.load_factor * 1
+        const load_base = stats.state.load_base === undefined ? 1 :stats.state.load_base * 1
         const current_fee = Math.round((basefee * load_factor) / load_base)
     
         if (debug) {
