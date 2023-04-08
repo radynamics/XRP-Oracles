@@ -80,8 +80,8 @@ module.exports = class CurrencyPublisher {
             stats.submissions_since_start ++
           }
         } catch (e) {
-          var usedParams = `sequence: ${sequence}, trxFee: ${trxFee}, code: ${code}, filteredMedian: ${filteredMedian}`
-          logger.error(`Error signing / submitting: ${e.message}, usedParams: ${usedParams}`, e);
+          var txText = JSON.stringify(Tx)
+          logger.error(`Error signing / submitting: ${e.message}, Tx: ${txText}`, e);
           retry = this.resubmitTx(data, oracle)
         }
         logger.debug('WRAP UP')
