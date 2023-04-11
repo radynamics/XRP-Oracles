@@ -134,6 +134,7 @@ class Oracle extends EventEmitter {
       },
       listenEventLoop(interval) {
         const  self = this
+        self.emit('oracle-fetch')
         setInterval(function() {
           self.emit('oracle-fetch')
         }, interval)
