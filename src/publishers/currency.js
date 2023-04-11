@@ -10,7 +10,7 @@ const MAX_SUBMIT_RETRIES = process.env.MAX_SUBMIT_RETRIES == null ? 1 : parseInt
 module.exports = class CurrencyPublisher {
   constructor() {
     Object.assign(this, {
-      async publish(Connection, data, sequence, fee, count, stats, oracle) {
+      publish(Connection, data, sequence, fee, count, stats, oracle) {
         let retry = null
 
         if (!('rawResultsNamed' in data)) { return }
@@ -55,11 +55,9 @@ module.exports = class CurrencyPublisher {
         // logger.debug(Tx)
 
         logger.debug('SIGN & SUBMIT')
-        try {
-          const keypair = lib.derive.familySeed(process.env.XRPL_SOURCE_ACCOUNT_SECRET)
-          const {signedTransaction} = lib.sign(Tx, keypair)
-          const Signed = await Connection.send({ command: 'submit', 'tx_blob': signedTransaction })
-
+        const keypair = lib.derive.familySeed(process.env.XRPL_SOURCE_ACCOUNT_SECRET)
+        const {signedTransaction} = lib.sign(Tx, keypair)
+        Connection.send({ command: 'submit', 'tx_blob': signedTransaction }).then(function(Signed) {
           // log({Signed})
           // terQUEUED: "... did not meet the open ledger requirement, so the transaction has been queued for a future ledger."
           var successResult = [ 'tesSUCCESS', 'terQUEUED'] 
@@ -79,12 +77,13 @@ module.exports = class CurrencyPublisher {
             stats.last_fee = trxFee
             stats.submissions_since_start ++
           }
-        } catch (e) {
+          logger.debug('WRAP UP')
+        })
+        .catch(e => {
           var txText = JSON.stringify(Tx)
           logger.error(`Error signing / submitting: ${e.message}, Tx: ${txText}`, e);
           retry = this.resubmitTx(data, oracle)
-        }
-        logger.debug('WRAP UP')
+        })
       },
       resubmitTx(data, oracle) {
         // make sure a stuck transaction at somepoint falls off our queue
