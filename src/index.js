@@ -219,7 +219,7 @@ class Oracle extends EventEmitter {
         return current_fee
       },
       async processFifo(sequence) {
-        if(fifo.length == 0) {
+        if(fifo.length == 0 && retry.length == 0) {
           return
         }
         logger.debug('PUBLISH DATA fifo length: ' + fifo.length)
