@@ -25,7 +25,7 @@
     "winston-daily-rotate-file": "^4.6.1",
     "ws": "^8.2.3",
     "xrp-price-aggregator": "https://github.com/lathanbritz/XRP-Price-Aggregator.git",
-    "xrpl-accountlib": "^1.1.4",
+    "xrpl-accountlib": "^2.0.5",
     "xrpl-client": "^1.9.2"
   }
 }
