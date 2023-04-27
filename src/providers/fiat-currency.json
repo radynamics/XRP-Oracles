@@ -42,12 +42,6 @@
 				"url": "https://www.bithash.net/api/v4/ticker",
 				"selector": "data.XRP_USD.last_price",
 				"invert": false
-			},
-			{
-				"name": "ftx:usd",
-				"url": "https://ftx.com/api/markets/XRP/USD",
-				"selector": "data.result.last",
-				"invert": false
 			}
 		]
 	},
