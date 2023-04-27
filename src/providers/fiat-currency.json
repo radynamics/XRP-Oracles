@@ -362,9 +362,9 @@
 				"invert": false
 			},
 			{
-				"name": "tokenize-exchange:myr",
-				"url": "https://api2.tokenize.exchange/public/v1/market/ticker?market=MYR-XRP",
-				"selector": "data.data.lastPrice",
+				"name": "coinbase:myr",
+				"url": "https://api.coinbase.com/v2/exchange-rates?currency=XRP",
+				"selector": "data.data.rates.MYR",
 				"invert": false
 			}
 		]
