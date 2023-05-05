@@ -78,7 +78,7 @@ module.exports = class CurrencyPublisher {
             stats.submissions_since_start ++
           }
           logger.debug('WRAP UP')
-        })
+        }.bind(this))
         .catch(e => {
           var txText = JSON.stringify(Tx)
           logger.error(`Error signing / submitting: ${e.message}, Tx: ${txText}`, e);
