@@ -181,7 +181,7 @@ class Oracle extends EventEmitter {
           res.json(stats)
         })
         app.get('/api/health', async function(req, res) {
-          if(stats.last_published == null || stats.last_published.getTime() + UNHEALTHY_AFTER < new Date().getTime()) {
+          if(stats.last_published == null || stats.last_published.getTime() + UNHEALTHY_AFTER > new Date().getTime()) {
             res.status(200).send(null)
           } else {
             res.status(500).send(`No data published since ` + stats.last_published.toISOString())
