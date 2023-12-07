@@ -1,4 +1,7 @@
 # XRP-Oracles
+
+<em>**2023-12-07 Deprecated**. Successor [CryptoPriceOracle](https://github.com/radynamics/CryptoPriceOracle) provides equal functionality with additional features.</em>
+
 Price Oracle pushing service
 
 Persists the data fetched with [XRP-Price-Aggregator](https://github.com/lathanbritz/XRP-Price-Aggregator) on the XRP Ledger. 
